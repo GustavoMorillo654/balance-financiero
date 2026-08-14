@@ -1,8 +1,5 @@
 # Motor Computacional de Análisis Financiero - Fase 1: Balance General
 
-> **Rol del Desarrollador:** Gustavo Morillo (Persona 1)  
-> **Alcance:** Fase 1: Estructuración y Modelado del Balance General
-
 ---
 
 ## 📌 Descripción del Proyecto
