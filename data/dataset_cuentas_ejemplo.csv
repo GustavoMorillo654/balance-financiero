@@ -1,0 +1,7 @@
+id_cuenta,descripcion_cuenta,tipo_saldo,monto,vida_util_anios
+1,Caja y Bancos,Liquidez,15000,
+2,Terreno,Inversion,50000,
+3,Maquinaria,Inversion,30000,10
+4,Proveedores,Deuda_Corto,12000,
+5,Prestamos Bancarios LP,Deuda_Largo,20000,
+6,Capital Social,Propietarios,60000,
