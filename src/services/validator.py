@@ -1,4 +1,5 @@
 import math
+import unicodedata
 from typing import List, Tuple
 from src.models.account import Account, AccountCategory
 from src.models.balance_sheet import (
@@ -17,6 +18,19 @@ class AccountingValidator:
     """Validador de la ecuación contable fundamental y ensamblador del DTO estandarizado."""
 
     DEFAULT_TOLERANCE = 0.001
+
+    @staticmethod
+    def _normalize_account_name(name: str) -> str:
+        normalized = unicodedata.normalize("NFD", name or "")
+        without_accents = "".join(
+            char for char in normalized if unicodedata.category(char) != "Mn"
+        )
+        return without_accents.lower().strip()
+
+    @classmethod
+    def _contains_term(cls, name: str, terms: Tuple[str, ...]) -> bool:
+        normalized = cls._normalize_account_name(name)
+        return any(term in normalized for term in terms)
 
     @classmethod
     def build_and_validate(
@@ -37,6 +51,9 @@ class AccountingValidator:
 
         total_ingresos = 0.0
         total_egresos = 0.0
+        total_costos = 0.0
+        total_inventario = 0.0
+        total_cuentas_por_cobrar = 0.0
         has_results_accounts = False
 
         for acc in accounts:
@@ -55,6 +72,17 @@ class AccountingValidator:
                         valor_neto=acc.valor_neto,
                     )
                 )
+            if acc.categoria == AccountCategory.ACTIVO_CORRIENTE:
+                if cls._contains_term(
+                    acc.nombre,
+                    ("inventario", "inventarios", "mercancia", "mercaderia", "existencia", "almacen"),
+                ):
+                    total_inventario += acc.saldo
+                if cls._contains_term(
+                    acc.nombre,
+                    ("cuenta por cobrar", "cuentas por cobrar", "cliente", "clientes", "deudor", "deudores"),
+                ):
+                    total_cuentas_por_cobrar += acc.saldo
             elif acc.categoria == AccountCategory.PASIVO_CORRIENTE:
                 pasivo_corriente_dtos.append(
                     AccountDTO(nombre=acc.nombre, saldo=acc.saldo, id_cuenta=acc.id_cuenta)
@@ -72,6 +100,8 @@ class AccountingValidator:
                 has_results_accounts = True
             elif acc.categoria == AccountCategory.EGRESO:
                 total_egresos += acc.saldo
+                if cls._contains_term(acc.nombre, ("costo", "costos")):
+                    total_costos += acc.saldo
                 has_results_accounts = True
 
         # Si existen cuentas de ingresos y egresos, calcular Utilidad del Ejercicio
@@ -84,6 +114,8 @@ class AccountingValidator:
                     id_cuenta="RES_NETO"
                 )
             )
+        else:
+            utilidad_ejercicio = 0.0
 
         # Cálculo de totales por subcategoría y sección
         total_act_corr = sum(c.saldo for c in activo_corriente_dtos)
@@ -129,7 +161,14 @@ class AccountingValidator:
             total_pasivo=round(total_pasivo, 2),
             total_patrimonio=round(total_patrimonio, 2),
             activo_corriente=round(total_act_corr, 2),
-            pasivo_corriente=round(total_pas_corr, 2)
+            pasivo_corriente=round(total_pas_corr, 2),
+            inventario=round(total_inventario, 2),
+            cuentas_por_cobrar=round(total_cuentas_por_cobrar, 2),
+            ventas=round(total_ingresos, 2),
+            costos=round(total_costos, 2),
+            egresos=round(total_egresos, 2),
+            utilidad_neta=round(utilidad_ejercicio, 2),
+            depreciacion_periodo=round(depreciacion_periodo, 2),
         )
 
         # Validación de la ecuación fundamental: Total Activo = Total Pasivo + Total Patrimonio
