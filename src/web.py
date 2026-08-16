@@ -1,6 +1,7 @@
 """Aplicación web para cargar CSV y presentar el análisis financiero."""
 
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.staticfiles import StaticFiles
@@ -28,6 +29,7 @@ def health_check() -> dict[str, str]:
 async def analyze_csv(
     file: UploadFile = File(...),
     period_days: int = Query(365, ge=1, le=366),
+    balance_mode: Literal["strict", "conciliacion"] = Query("conciliacion"),
 ) -> dict:
     """Procesa un archivo CSV cargado por el usuario."""
     if not file.filename or not file.filename.lower().endswith(".csv"):
@@ -43,7 +45,11 @@ async def analyze_csv(
         )
 
     csv_content = content.decode("utf-8-sig", errors="replace")
-    result = process_balance_content(csv_content, periodo_dias=period_days)
+    result = process_balance_content(
+        csv_content,
+        periodo_dias=period_days,
+        balance_mode=balance_mode,
+    )
     return result
 
 

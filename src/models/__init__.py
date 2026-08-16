@@ -11,6 +11,7 @@ from src.models.balance_sheet import (
     FinancialRatioMetricDTO,
     FinancialRatiosDTO,
     CreditEvaluationDTO,
+    BalanceAdjustmentDTO,
     BalanceSheetResultDTO,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "FinancialRatioMetricDTO",
     "FinancialRatiosDTO",
     "CreditEvaluationDTO",
+    "BalanceAdjustmentDTO",
     "BalanceSheetResultDTO",
 ]

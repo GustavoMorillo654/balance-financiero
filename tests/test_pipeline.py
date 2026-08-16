@@ -104,3 +104,23 @@ class TestPipeline:
         assert result["isValid"] is False
         assert result["credit_evaluation"]["disponible"] is False
         assert result["credit_evaluation"]["categoria"] == "No evaluable"
+
+    def test_datos_csv_can_be_reconciled_in_memory(self):
+        result = process_balance_file("datos.csv", balance_mode="conciliacion")
+
+        assert result["isValid"] is True
+        adjustment = result["balance_adjustment"]
+        assert adjustment["aplicado"] is True
+        assert adjustment["monto"] == 30000.0
+        assert adjustment["lado"] == "activo"
+        assert result["metrics_base"]["totalActivo"] == 322000.0
+        assert result["metrics_base"]["totalActivo"] == (
+            result["metrics_base"]["totalPasivo"] + result["metrics_base"]["totalPatrimonio"]
+        )
+        temporary = next(
+            account for account in result["balance"]["activo"]["corriente"]["cuentas"]
+            if account.get("ajusteTemporal")
+        )
+        assert temporary["saldo"] == 30000.0
+        assert result["credit_evaluation"]["disponible"] is True
+        assert result["credit_evaluation"]["zScore"] == 1.8767

@@ -54,6 +54,19 @@ class TestWebApi:
             assert "financial_ratios" in response.json()
             assert "credit_evaluation" in response.json()
 
+    def test_datos_csv_uses_temporary_reconciliation_when_requested(self):
+        root = Path(__file__).resolve().parent.parent
+        response = client.post(
+            "/api/analyze?balance_mode=conciliacion",
+            files={"file": ("datos.csv", (root / "datos.csv").read_bytes(), "text/csv")},
+        )
+
+        assert response.status_code == 200
+        result = response.json()
+        assert result["isValid"] is True
+        assert result["balance_adjustment"]["monto"] == 30000.0
+        assert result["credit_evaluation"]["zScore"] == 1.8767
+
     def test_rejects_invalid_uploads(self):
         wrong_extension = client.post(
             "/api/analyze",

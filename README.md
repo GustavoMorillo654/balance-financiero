@@ -120,7 +120,7 @@ python src/index.py --file data/dataset_cuentas_ejemplo.csv
 .venv/bin/uvicorn src.web:app --reload
 ```
 
-Abra `http://127.0.0.1:8000`. La interfaz envía el archivo a `POST /api/analyze` como `multipart/form-data`; admite el campo `file` y el parámetro opcional `period_days` (1–366). El archivo debe ser `.csv` y no superar 5 MB. `GET /api/health` permite comprobar el estado de la función.
+Abra `http://127.0.0.1:8000`. La interfaz envía el archivo a `POST /api/analyze` como `multipart/form-data`; admite el campo `file`, `period_days` (1–366) y `balance_mode` (`strict` o `conciliacion`). La interfaz usa `conciliacion` por defecto: si el balance está descuadrado, añade una cuenta puente únicamente en memoria para poder calcular el puntaje Z; `datos.csv` nunca se modifica. El detalle queda en `balance_adjustment` y la alerta original se conserva. El archivo debe ser `.csv` y no superar 5 MB. `GET /api/health` permite comprobar el estado de la función.
 
 ### Desplegar en Vercel
 
@@ -150,6 +150,14 @@ El período de actividad se puede configurar en días (365 por defecto):
 ```bash
 python src/index.py --file datos.csv --period-days 360
 ```
+
+Para analizar un CSV descuadrado sin editarlo, solicite explícitamente la conciliación temporal:
+
+```bash
+python src/index.py --file datos.csv --balance-mode conciliacion --json
+```
+
+La CLI mantiene `strict` como modo predeterminado; en ese modo un descuadre deja el dictamen como `No evaluable`.
 
 ---
 
@@ -253,4 +261,4 @@ Z = 0.4 * X1 + 0.6 * X2
 | `0.66 ≤ Z ≤ 1.4` | Crédito de riesgo normal |
 | `Z < 0.66` | Crédito malo |
 
-El dictamen es `No evaluable` si el balance está descuadrado, si `X1` o `X2` no se puede calcular, o si algún denominador requerido es cero. La CLI imprime el puntaje y su explicación después del dashboard de índices.
+El dictamen es `No evaluable` si el balance está descuadrado en modo `strict`, si `X1` o `X2` no se puede calcular, o si algún denominador requerido es cero. En `conciliacion`, el ajuste temporal se identifica en `balance_adjustment` y el puntaje debe interpretarse junto con la alerta de revisión del CSV original.

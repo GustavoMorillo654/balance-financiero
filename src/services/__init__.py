@@ -4,6 +4,7 @@ from src.services.classifier import AccountClassifier
 from src.services.depreciation import DepreciationEngine
 from src.services.credit_evaluation import CreditEvaluation
 from src.services.financial_ratios import FinancialRatios
+from src.services.reconciliation import BalanceReconciler
 from src.services.validator import AccountingValidator
 
 __all__ = [
@@ -12,5 +13,6 @@ __all__ = [
     "DepreciationEngine",
     "CreditEvaluation",
     "FinancialRatios",
+    "BalanceReconciler",
     "AccountingValidator",
 ]

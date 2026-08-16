@@ -18,11 +18,16 @@ from src.services.classifier import AccountClassifier
 from src.services.credit_evaluation import CreditEvaluation
 from src.services.depreciation import DepreciationEngine
 from src.services.financial_ratios import FinancialRatios
+from src.services.reconciliation import BalanceReconciler
 from src.services.validator import AccountingValidator
 from src.models.balance_sheet import BalanceSheetResultDTO
 
 
-def process_balance_content(csv_content: str, periodo_dias: int = FinancialRatios.DEFAULT_PERIOD_DAYS) -> Dict[str, Any]:
+def process_balance_content(
+    csv_content: str,
+    periodo_dias: int = FinancialRatios.DEFAULT_PERIOD_DAYS,
+    balance_mode: str = BalanceReconciler.MODE_STRICT,
+) -> Dict[str, Any]:
     """
     Ejecuta el pipeline completo de Fase 1 a partir de una cadena con contenido CSV.
     Retorna el diccionario estructurado según el contrato estandarizado.
@@ -37,6 +42,7 @@ def process_balance_content(csv_content: str, periodo_dias: int = FinancialRatio
             "metrics_base": {},
             "financial_ratios": {},
             "credit_evaluation": {},
+            "balance_adjustment": {},
         }
 
     # 2. Clasificación dinámica
@@ -50,6 +56,7 @@ def process_balance_content(csv_content: str, periodo_dias: int = FinancialRatio
         accounts=accounts_depreciated,
         depreciacion_periodo=gasto_depreciacion
     )
+    result_dto = BalanceReconciler.apply(result_dto, mode=balance_mode)
     result_dto.financial_ratios = FinancialRatios.calculate(
         result_dto.metrics_base,
         periodo_dias=periodo_dias,
@@ -67,6 +74,7 @@ def process_balance_file(
     filepath: str,
     output_path: Optional[str] = None,
     periodo_dias: int = FinancialRatios.DEFAULT_PERIOD_DAYS,
+    balance_mode: str = BalanceReconciler.MODE_STRICT,
 ) -> Dict[str, Any]:
     """
     Ejecuta el pipeline completo de Fase 1 a partir de la ruta de un archivo CSV.
@@ -78,7 +86,11 @@ def process_balance_file(
     with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
         content = f.read()
 
-    result = process_balance_content(content, periodo_dias=periodo_dias)
+    result = process_balance_content(
+        content,
+        periodo_dias=periodo_dias,
+        balance_mode=balance_mode,
+    )
 
     if output_path:
         with open(output_path, "w", encoding="utf-8") as f:
@@ -114,11 +126,22 @@ def main():
         default=FinancialRatios.DEFAULT_PERIOD_DAYS,
         help="Días del período para índices de actividad (por defecto: 365)"
     )
+    parser.add_argument(
+        "--balance-mode",
+        choices=(BalanceReconciler.MODE_STRICT, BalanceReconciler.MODE_CONCILIATION),
+        default=BalanceReconciler.MODE_STRICT,
+        help="strict conserva el descuadre; conciliacion agrega un ajuste temporal en memoria",
+    )
 
     args = parser.parse_args()
 
     try:
-        result = process_balance_file(args.file, args.output, args.period_days)
+        result = process_balance_file(
+            args.file,
+            args.output,
+            args.period_days,
+            args.balance_mode,
+        )
 
         if args.json:
             print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -135,6 +158,13 @@ def main():
             print("\n⚠️ ALERTAS DETECTADAS:")
             for alert in result["alerts"]:
                 print(f"  - {alert}")
+
+        adjustment = result.get("balance_adjustment", {})
+        if adjustment.get("aplicado"):
+            print(
+                f"\n⚠️ Ajuste temporal aplicado en memoria: "
+                f"${adjustment.get('monto', 0.0):,.2f} al activo."
+            )
 
         bal = result.get("balance", {})
         print("\n--- RESUMEN DE ACTIVOS ---")

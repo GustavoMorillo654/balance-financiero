@@ -53,6 +53,7 @@ Construir un sistema que reciba cuentas contables en CSV, produzca un balance ge
 - [x] Añadir pruebas de API y smoke tests de carga para `data/dataset_cuentas_ejemplo.csv` y `datos.csv`.
 - [ ] Conectar automáticamente el repositorio GitHub a Vercel; el despliegue directo está activo, pero la vinculación requiere permisos de escritura/administración en `GustavoMorillo654/balance-financiero`.
 - [x] Verificar en la URL pública cargas de CSV, recálculo completo y respuesta de predicción o `No evaluable` cuando el balance está descuadrado.
+- [x] Añadir modo opcional de conciliación temporal en memoria para CSV descuadrados, manteniendo `strict` y el archivo original intactos.
 - [x] Preparar una guía de defensa: arquitectura, flujo CSV→DTO→índices→Z, interpretación y limitaciones.
 
 ## Criterio de finalización

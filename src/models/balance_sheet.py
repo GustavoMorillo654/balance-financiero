@@ -11,6 +11,7 @@ class AccountDTO:
     depreciable: Optional[bool] = None
     depreciacion_acumulada: Optional[float] = None
     valor_neto: Optional[float] = None
+    ajuste_temporal: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {
@@ -21,6 +22,8 @@ class AccountDTO:
             data["depreciable"] = self.depreciable
             data["depreciacionAcumulada"] = round(self.depreciacion_acumulada or 0.0, 2)
             data["valorNeto"] = round(self.valor_neto if self.valor_neto is not None else self.saldo, 2)
+        if self.ajuste_temporal:
+            data["ajusteTemporal"] = True
         return data
 
 
@@ -199,6 +202,25 @@ class CreditEvaluationDTO:
 
 
 @dataclass
+class BalanceAdjustmentDTO:
+    """Información del ajuste temporal aplicado en modo conciliación."""
+    aplicado: bool = False
+    monto: float = 0.0
+    lado: Optional[str] = None
+    diferencia_original: float = 0.0
+    descripcion: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "aplicado": self.aplicado,
+            "monto": round(self.monto, 2),
+            "lado": self.lado,
+            "diferenciaOriginal": round(self.diferencia_original, 2),
+            "descripcion": self.descripcion,
+        }
+
+
+@dataclass
 class BalanceSheetResultDTO:
     """Contrato final de entrega para Persona 2."""
     is_valid: bool = True
@@ -207,6 +229,7 @@ class BalanceSheetResultDTO:
     metrics_base: MetricsBaseDTO = field(default_factory=MetricsBaseDTO)
     financial_ratios: FinancialRatiosDTO = field(default_factory=FinancialRatiosDTO)
     credit_evaluation: CreditEvaluationDTO = field(default_factory=CreditEvaluationDTO)
+    balance_adjustment: BalanceAdjustmentDTO = field(default_factory=BalanceAdjustmentDTO)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -216,4 +239,5 @@ class BalanceSheetResultDTO:
             "metrics_base": self.metrics_base.to_dict(),
             "financial_ratios": self.financial_ratios.to_dict(),
             "credit_evaluation": self.credit_evaluation.to_dict(),
+            "balance_adjustment": self.balance_adjustment.to_dict(),
         }
