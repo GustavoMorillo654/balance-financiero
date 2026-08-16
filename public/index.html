@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Balance Financiero</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #102a43;
+        --muted: #627d98;
+        --surface: #ffffff;
+        --canvas: #f0f4f8;
+        --primary: #0b7285;
+        --primary-dark: #075c69;
+        --good: #1b7f4b;
+        --warn: #b7791f;
+        --bad: #c53030;
+        --line: #d9e2ec;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--canvas);
+      }
+      .shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+      header {
+        background: linear-gradient(115deg, #083344, #0b7285);
+        color: white;
+        padding: 52px 0 68px;
+      }
+      .eyebrow { margin: 0 0 10px; color: #b8f3ee; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.4rem); letter-spacing: -.04em; }
+      header p:last-child { max-width: 720px; margin: 16px 0 0; color: #e0fbf8; line-height: 1.6; }
+      main { margin-top: -34px; padding-bottom: 64px; }
+      .panel, .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 30px rgba(16,42,67,.08); }
+      .upload { padding: 24px; }
+      .upload-grid { display: grid; grid-template-columns: minmax(0, 1fr) 170px auto; gap: 16px; align-items: end; }
+      label { display: grid; gap: 8px; color: var(--muted); font-size: .9rem; font-weight: 700; }
+      input { width: 100%; padding: 12px; border: 1px solid #bcccdc; border-radius: 9px; font: inherit; color: var(--ink); background: #fff; }
+      input:focus { outline: 3px solid #b8f3ee; border-color: var(--primary); }
+      button { padding: 12px 18px; border: 0; border-radius: 9px; background: var(--primary); color: white; font: inherit; font-weight: 750; cursor: pointer; }
+      button:hover:not(:disabled) { background: var(--primary-dark); }
+      button:disabled { cursor: progress; opacity: .72; }
+      .hint { margin: 14px 0 0; color: var(--muted); font-size: .9rem; }
+      .status { margin: 24px 0 0; padding: 14px 16px; border-radius: 10px; font-weight: 650; }
+      .status[hidden], #results[hidden] { display: none; }
+      .status.info { background: #d9f5f2; color: #075c69; }
+      .status.error { background: #fff0f0; color: var(--bad); }
+      .status.success { background: #e6f7ed; color: var(--good); }
+      #results { margin-top: 24px; }
+      .section-title { margin: 36px 0 14px; font-size: 1.1rem; letter-spacing: -.01em; }
+      .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+      .card { padding: 18px; box-shadow: none; }
+      .card span { display: block; color: var(--muted); font-size: .85rem; font-weight: 650; }
+      .card strong { display: block; margin-top: 8px; font-size: 1.45rem; letter-spacing: -.035em; }
+      .credit { display: grid; grid-template-columns: 1.1fr 1.4fr; gap: 14px; }
+      .credit-score { color: white; background: #0b7285; border: 0; }
+      .credit-score span { color: #c9f7f1; }
+      .credit-score strong { font-size: 2.6rem; }
+      .credit-risk { color: white; background: var(--bad); border: 0; }
+      .credit-normal { color: #633c01; background: #fff3cd; border: 0; }
+      .credit-good { color: white; background: var(--good); border: 0; }
+      .ratio-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .ratio-group { padding: 0; overflow: hidden; }
+      .ratio-group h3 { margin: 0; padding: 16px 18px; border-bottom: 1px solid var(--line); font-size: 1rem; }
+      .ratio-list { list-style: none; padding: 0; margin: 0; }
+      .ratio-list li { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 14px 18px; border-bottom: 1px solid #edf2f7; }
+      .ratio-list li:last-child { border-bottom: 0; }
+      .ratio-name { font-weight: 700; }
+      .ratio-formula, .ratio-reason { grid-column: 1 / -1; color: var(--muted); font-size: .82rem; }
+      .ratio-value { font-weight: 800; text-align: right; }
+      .ratio-unavailable { color: var(--warn); }
+      .alerts { margin: 16px 0 0; padding: 16px 18px; border-radius: 12px; background: #fff8e1; border: 1px solid #f6d365; color: #7c5817; }
+      .alerts h3 { margin: 0 0 8px; font-size: 1rem; }
+      .alerts ul { margin: 0; padding-left: 20px; }
+      footer { color: var(--muted); font-size: .86rem; text-align: center; padding: 24px 0; }
+      @media (max-width: 760px) {
+        .upload-grid, .summary, .credit, .ratio-grid { grid-template-columns: 1fr; }
+        header { padding-top: 38px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="shell">
+        <p class="eyebrow">Fases 1–3</p>
+        <h1>Balance Financiero</h1>
+        <p>Carga un CSV contable para validar el balance, revisar índices financieros y obtener un dictamen de crédito explicable.</p>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="panel upload" aria-labelledby="upload-title">
+        <h2 id="upload-title">Analizar archivo contable</h2>
+        <form id="analysis-form">
+          <div class="upload-grid">
+            <label>Archivo CSV
+              <input id="file" name="file" type="file" accept=".csv,text/csv" required />
+            </label>
+            <label>Días del período
+              <input id="period-days" name="period-days" type="number" min="1" max="366" value="365" required />
+            </label>
+            <button id="submit" type="submit">Procesar CSV</button>
+          </div>
+        </form>
+        <p class="hint">Máximo 5 MB. Encabezados habituales: <code>id_cuenta</code>, <code>descripcion_cuenta</code>, <code>tipo_saldo</code>, <code>monto</code> y <code>vida_util_anios</code>.</p>
+      </section>
+
+      <p id="status" class="status" role="status" hidden></p>
+      <section id="results" aria-live="polite" hidden></section>
+    </main>
+
+    <footer>Motor de análisis financiero · Balance General, índices y evaluación discriminante.</footer>
+
+    <script>
+      const form = document.querySelector('#analysis-form');
+      const fileInput = document.querySelector('#file');
+      const periodInput = document.querySelector('#period-days');
+      const submitButton = document.querySelector('#submit');
+      const status = document.querySelector('#status');
+      const results = document.querySelector('#results');
+
+      const labels = {
+        liquidez: 'Liquidez', apalancamiento: 'Apalancamiento', actividad: 'Actividad', rentabilidad: 'Rentabilidad',
+        razonCorriente: 'Razón Corriente', pruebaAcida: 'Prueba Ácida', capitalTrabajo: 'Capital de Trabajo',
+        razonEndeudamiento: 'Razón de Endeudamiento', pasivoPatrimonio: 'Pasivo / Patrimonio',
+        autonomiaFinanciera: 'Autonomía Financiera', apalancamientoInterno: 'Apalancamiento Interno',
+        rotacionInventarios: 'Rotación de Inventarios', diasInventario: 'Días de Inventario',
+        rotacionActivos: 'Rotación de Activos', rotacionCuentasPorCobrar: 'Rotación de Cuentas por Cobrar',
+        periodoCobro: 'Período de Cobro', margenNeto: 'Margen Neto', roa: 'ROA', roe: 'ROE'
+      };
+
+      function money(value) {
+        return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value || 0);
+      }
+
+      function numeric(value, unit) {
+        if (value === null || value === undefined) return 'N/D';
+        const formatted = new Intl.NumberFormat('es-VE', { maximumFractionDigits: 4 }).format(value);
+        return unit === 'proporción' ? `${formatted} (${new Intl.NumberFormat('es-VE', { style: 'percent', maximumFractionDigits: 2 }).format(value)})` : `${formatted} ${unit}`;
+      }
+
+      function showStatus(message, tone) {
+        status.textContent = message;
+        status.className = `status ${tone}`;
+        status.hidden = false;
+      }
+
+      function summaryCard(label, value) {
+        return `<article class="card"><span>${label}</span><strong>${money(value)}</strong></article>`;
+      }
+
+      function ratioGroup(groupKey, group) {
+        const rows = Object.entries(group).map(([key, metric]) => {
+          const reason = metric.razon ? `<span class="ratio-reason">${metric.razon}</span>` : '';
+          return `<li>
+            <span class="ratio-name">${labels[key] || key}</span>
+            <span class="ratio-value ${metric.disponible ? '' : 'ratio-unavailable'}">${numeric(metric.valor, metric.unidad)}</span>
+            <span class="ratio-formula">${metric.formula}</span>${reason}
+          </li>`;
+        }).join('');
+        return `<article class="card ratio-group"><h3>${labels[groupKey] || groupKey}</h3><ul class="ratio-list">${rows}</ul></article>`;
+      }
+
+      function render(result) {
+        const base = result.metrics_base;
+        const balanceAlert = result.isValid ? 'Balance validado correctamente.' : 'El balance presenta un descuadre; el dictamen de crédito no es concluyente.';
+        const evaluation = result.credit_evaluation;
+        const creditClass = evaluation.categoria === 'Crédito excelente' ? 'credit-good' : evaluation.categoria === 'Crédito de riesgo normal' ? 'credit-normal' : 'credit-risk';
+        const ratioCards = ['liquidez', 'apalancamiento', 'actividad', 'rentabilidad']
+          .map((key) => ratioGroup(key, result.financial_ratios[key])).join('');
+        const alerts = [...result.alerts, ...result.financial_ratios.alertas, ...evaluation.alertas];
+
+        results.innerHTML = `
+          <h2 class="section-title">Resultado del análisis</h2>
+          <div class="summary">
+            ${summaryCard('Activo total', base.totalActivo)}
+            ${summaryCard('Pasivo total', base.totalPasivo)}
+            ${summaryCard('Patrimonio total', base.totalPatrimonio)}
+            <article class="card"><span>Estado del balance</span><strong>${result.isValid ? 'Validado' : 'Descuadrado'}</strong></article>
+          </div>
+          <h2 class="section-title">Evaluación de crédito</h2>
+          <div class="credit">
+            <article class="card credit-score"><span>Puntaje Z</span><strong>${evaluation.zScore ?? 'N/D'}</strong><small>${evaluation.formula}</small></article>
+            <article class="card ${creditClass}"><span>Dictamen</span><strong>${evaluation.categoria}</strong><p>${evaluation.explicacion}</p><small>X1: ${evaluation.x1 ?? 'N/D'} · X2: ${evaluation.x2 ?? 'N/D'}</small></article>
+          </div>
+          <h2 class="section-title">Índices financieros</h2>
+          <div class="ratio-grid">${ratioCards}</div>
+          ${alerts.length ? `<aside class="alerts"><h3>Alertas y datos pendientes</h3><ul>${alerts.map((alert) => `<li>${alert}</li>`).join('')}</ul></aside>` : ''}
+        `;
+        results.hidden = false;
+        showStatus(balanceAlert, result.isValid ? 'success' : 'error');
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const file = fileInput.files[0];
+        if (!file) {
+          showStatus('Seleccione un archivo CSV para continuar.', 'error');
+          return;
+        }
+        submitButton.disabled = true;
+        submitButton.textContent = 'Procesando…';
+        results.hidden = true;
+        showStatus('Procesando el balance y calculando indicadores…', 'info');
+        try {
+          const data = new FormData();
+          data.append('file', file);
+          const response = await fetch(`/api/analyze?period_days=${encodeURIComponent(periodInput.value)}`, { method: 'POST', body: data });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.detail || 'No se pudo procesar el archivo.');
+          render(payload);
+        } catch (error) {
+          showStatus(error.message || 'Ocurrió un error inesperado.', 'error');
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Procesar CSV';
+        }
+      });
+    </script>
+  </body>
+</html>

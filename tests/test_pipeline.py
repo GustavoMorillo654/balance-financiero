@@ -13,6 +13,7 @@ class TestPipeline:
         assert "alerts" in result
         assert "balance" in result
         assert "metrics_base" in result
+        assert "financial_ratios" in result
 
         # Dataset de ejemplo debe cuadrar perfectamente
         assert result["isValid"] is True
@@ -45,6 +46,14 @@ class TestPipeline:
         mb = result["metrics_base"]
         assert mb["totalActivo"] == mb["totalPasivo"] + mb["totalPatrimonio"]
         assert mb["totalActivo"] == 92000.0
+        assert mb["inventario"] == 0.0
+        assert result["financial_ratios"]["liquidez"]["razonCorriente"]["valor"] == 1.25
+        assert result["financial_ratios"]["apalancamiento"]["razonEndeudamiento"]["valor"] == round(32000 / 92000, 4)
+        assert result["credit_evaluation"]["disponible"] is True
+        assert result["credit_evaluation"]["x1"] == 1.25
+        assert result["credit_evaluation"]["x2"] == 1.875
+        assert result["credit_evaluation"]["zScore"] == 1.625
+        assert result["credit_evaluation"]["categoria"] == "Crédito excelente"
 
     def test_datos_csv_pipeline(self):
         result = process_balance_file("datos.csv")
@@ -56,6 +65,7 @@ class TestPipeline:
         assert "isValid" in result
         assert "balance" in result
         assert "metrics_base" in result
+        assert "financial_ratios" in result
 
         # Validar que Terreno en datos.csv no fue depreciado
         cuentas_no_corr = result["balance"]["activo"]["noCorriente"]["cuentas"]
@@ -63,3 +73,34 @@ class TestPipeline:
         assert terreno["depreciable"] is False
         assert terreno["depreciacionAcumulada"] == 0.0
         assert terreno["valorNeto"] == 120000.0
+
+    def test_new_csv_content_recalculates_dashboard(self):
+        first_csv = """id,nombre,tipo,monto
+1,Caja,liquidez,1000
+2,Proveedores,pasivo_corriente,500
+3,Capital Social,patrimonio,500
+"""
+        second_csv = """id,nombre,tipo,monto
+1,Caja,liquidez,2000
+2,Proveedores,pasivo_corriente,500
+3,Capital Social,patrimonio,1500
+"""
+
+        first = process_balance_content(first_csv)
+        second = process_balance_content(second_csv)
+
+        assert first["financial_ratios"]["liquidez"]["razonCorriente"]["valor"] == 2.0
+        assert second["financial_ratios"]["liquidez"]["razonCorriente"]["valor"] == 4.0
+
+    def test_unbalanced_pipeline_does_not_issue_credit_verdict(self):
+        csv = """id,nombre,tipo,monto
+1,Caja,liquidez,20000
+2,Proveedores,pasivo_corriente,10000
+3,Capital Social,patrimonio,5000
+"""
+
+        result = process_balance_content(csv)
+
+        assert result["isValid"] is False
+        assert result["credit_evaluation"]["disponible"] is False
+        assert result["credit_evaluation"]["categoria"] == "No evaluable"

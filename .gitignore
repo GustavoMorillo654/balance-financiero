@@ -16,6 +16,10 @@ env/
 .coverage
 htmlcov/
 
+# Vercel
+.vercel/
+.env*
+
 # Editores e IDEs
 .vscode/
 .idea/
